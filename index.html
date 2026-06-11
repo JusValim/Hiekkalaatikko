@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MM 2026 Simulaattori</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Sora:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="bg-glow bg-glow-a"></div>
+    <div class="bg-glow bg-glow-b"></div>
+
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow">FIFA 2026</p>
+        <h1>Kisojen oma simulaattori</h1>
+        <p class="lead">
+          Jarjesta jokaisen lohkon joukkueet, valitse 8 jatkoon menevaa kolmossijaista ja pelaa
+          pudotuspelit loppuun asti.
+        </p>
+        <div class="hero-actions">
+          <button id="resetBtn" class="ghost-btn" type="button">Aloita alusta</button>
+        </div>
+      </header>
+
+      <section class="phase-strip" aria-label="Vaiheet">
+        <div class="phase-pill" id="pill-groups">1. Lohkovaihe</div>
+        <div class="phase-pill" id="pill-third">2. Parhaat kolmoset</div>
+        <div class="phase-pill" id="pill-knockout">3. Pudotuspelit</div>
+        <div class="phase-pill" id="pill-done">4. Lopputulos</div>
+      </section>
+
+      <section id="groupsSection" class="panel"></section>
+      <section id="thirdSection" class="panel hidden"></section>
+      <section id="knockoutSection" class="panel hidden"></section>
+      <section id="doneSection" class="panel hidden"></section>
+    </main>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
