@@ -93,6 +93,29 @@ const R32_PAIRINGS = [
   [10, 21],
 ];
 
+const R32_TO_R16 = [
+  [1, 4],
+  [0, 2],
+  [3, 5],
+  [6, 7],
+  [10, 11],
+  [8, 9],
+  [13, 15],
+  [12, 14],
+];
+
+const R16_TO_QF = [
+  [0, 1],
+  [4, 5],
+  [2, 3],
+  [6, 7],
+];
+
+const QF_TO_SF = [
+  [0, 1],
+  [2, 3],
+];
+
 let state = loadState() || createInitialState();
 let dragState = null;
 
@@ -468,10 +491,11 @@ function buildEmptyRound(prefix, count) {
   });
 }
 
-function setRoundFromWinners(targetRound, sourceRound) {
+function setRoundFromWinners(targetRound, sourceRound, sourceMapping) {
   for (let i = 0; i < targetRound.length; i += 1) {
-    const left = sourceRound[i * 2];
-    const right = sourceRound[i * 2 + 1];
+    const [leftIndex, rightIndex] = sourceMapping[i];
+    const left = sourceRound[leftIndex];
+    const right = sourceRound[rightIndex];
 
     const home = left ? left.winner : null;
     const away = right ? right.winner : null;
@@ -497,9 +521,9 @@ function recomputeKnockout() {
     }
   }
 
-  setRoundFromWinners(k.r16, k.r32);
-  setRoundFromWinners(k.qf, k.r16);
-  setRoundFromWinners(k.sf, k.qf);
+  setRoundFromWinners(k.r16, k.r32, R32_TO_R16);
+  setRoundFromWinners(k.qf, k.r16, R16_TO_QF);
+  setRoundFromWinners(k.sf, k.qf, QF_TO_SF);
 
   const final = k.final[0];
   final.home = k.sf[0].winner || null;
@@ -608,7 +632,7 @@ function onPickWinner(event) {
   const round = state.knockout[roundKey];
   const match = round.find((item) => item.id === matchId);
 
-  if (!match || (team !== match.home && team !== match.away)) {
+  if (!match || !match.home || !match.away || (team !== match.home && team !== match.away)) {
     return;
   }
 
