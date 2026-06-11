@@ -209,9 +209,15 @@ function renderGroups() {
     const teams = state.groups[groupKey];
     const items = teams
       .map((team, index) => {
+        const canMoveUp = index > 0;
+        const canMoveDown = index < teams.length - 1;
         return `
           <li class="team-item pos-${index + 1}" draggable="true" data-group="${groupKey}" data-index="${index}">
             <span>${teamLabel(team)}</span>
+            <span class="mobile-reorder" aria-label="Jarjesta joukkuetta ${team}">
+              <button class="reorder-btn" type="button" data-move="up" data-group="${groupKey}" data-index="${index}" ${canMoveUp ? "" : "disabled"}>▲</button>
+              <button class="reorder-btn" type="button" data-move="down" data-group="${groupKey}" data-index="${index}" ${canMoveDown ? "" : "disabled"}>▼</button>
+            </span>
             <span class="rank-tag">${index + 1}.</span>
           </li>
         `;
@@ -241,6 +247,10 @@ function renderGroups() {
     item.addEventListener("dragover", onDragOver);
     item.addEventListener("drop", onDrop);
   }
+
+  groupsSection.querySelectorAll(".reorder-btn").forEach((btn) => {
+    btn.addEventListener("click", onReorderButtonClick);
+  });
 
   const toThirdBtn = document.getElementById("toThirdBtn");
   toThirdBtn.addEventListener("click", () => {
@@ -291,6 +301,27 @@ function onDrop(event) {
   teams.splice(targetIndex, 0, moved);
 
   dragState = null;
+  saveState();
+  render();
+}
+
+function onReorderButtonClick(event) {
+  const btn = event.currentTarget;
+  const groupKey = btn.dataset.group;
+  const index = Number(btn.dataset.index);
+  const direction = btn.dataset.move;
+  const targetIndex = direction === "up" ? index - 1 : index + 1;
+
+  if (!groupKey || Number.isNaN(index) || targetIndex < 0) {
+    return;
+  }
+
+  const teams = state.groups[groupKey];
+  if (!teams || targetIndex >= teams.length) {
+    return;
+  }
+
+  [teams[index], teams[targetIndex]] = [teams[targetIndex], teams[index]];
   saveState();
   render();
 }

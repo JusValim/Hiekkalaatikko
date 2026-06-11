@@ -184,6 +184,32 @@ h3 {
   transition: transform 0.12s ease, background-color 0.2s ease;
 }
 
+.mobile-reorder {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.reorder-btn {
+  border: 1px solid #cfd7e6;
+  background: #ffffff;
+  color: #273a44;
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0;
+  cursor: pointer;
+}
+
+.reorder-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 .team-item:hover {
   transform: translateY(-1px);
 }
@@ -425,5 +451,13 @@ button {
   .group-grid,
   .third-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .team-item {
+    cursor: default;
+  }
+
+  .mobile-reorder {
+    display: inline-flex;
   }
 }
