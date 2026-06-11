@@ -74,24 +74,16 @@ function teamLabel(name) {
   return flag ? `${flag} ${name}` : name;
 }
 
-const R32_PAIRINGS = [
-  [0, 31],
-  [15, 16],
-  [7, 24],
-  [8, 23],
-  [3, 28],
-  [12, 19],
-  [4, 27],
-  [11, 20],
-  [2, 29],
-  [13, 18],
-  [6, 25],
-  [9, 22],
-  [1, 30],
-  [14, 17],
-  [5, 26],
-  [10, 21],
-];
+const THIRD_PLACE_SLOT_RULES = {
+  T1: ["A", "B", "C", "D", "F"],
+  T2: ["C", "D", "F", "G", "H"],
+  T3: ["C", "E", "F", "H", "I"],
+  T4: ["E", "H", "I", "J", "K"],
+  T5: ["B", "E", "F", "I", "J"],
+  T6: ["A", "E", "H", "I", "J"],
+  T7: ["E", "F", "G", "I", "J"],
+  T8: ["D", "E", "I", "J", "L"],
+};
 
 const R32_TO_R16 = [
   [1, 4],
@@ -425,15 +417,28 @@ function onThirdPlaceToggle(event) {
 }
 
 function initializeKnockout() {
-  const qualifiers = buildQualifiers();
-  const nextR32 = R32_PAIRINGS.map((pair, idx) => {
-    return {
-      id: `R32-${idx + 1}`,
-      home: qualifiers[pair[0]] || null,
-      away: qualifiers[pair[1]] || null,
-      winner: null,
-    };
-  });
+  const groupResults = getGroupResults();
+  const thirdEntries = getSelectedThirdPlaceEntries();
+  const thirdAssignment = assignThirdPlaceSlots(thirdEntries);
+
+  const nextR32 = [
+    createR32Match(1, groupResults.A.runner, groupResults.B.runner),
+    createR32Match(2, groupResults.E.winner, thirdAssignment.T1),
+    createR32Match(3, groupResults.F.winner, groupResults.C.runner),
+    createR32Match(4, groupResults.C.winner, groupResults.F.runner),
+    createR32Match(5, groupResults.I.winner, thirdAssignment.T2),
+    createR32Match(6, groupResults.E.runner, groupResults.I.runner),
+    createR32Match(7, groupResults.A.winner, thirdAssignment.T3),
+    createR32Match(8, groupResults.L.winner, thirdAssignment.T4),
+    createR32Match(9, groupResults.D.winner, thirdAssignment.T5),
+    createR32Match(10, groupResults.G.winner, thirdAssignment.T6),
+    createR32Match(11, groupResults.K.runner, groupResults.L.runner),
+    createR32Match(12, groupResults.H.winner, groupResults.J.runner),
+    createR32Match(13, groupResults.B.winner, thirdAssignment.T7),
+    createR32Match(14, groupResults.J.winner, groupResults.H.runner),
+    createR32Match(15, groupResults.K.winner, thirdAssignment.T8),
+    createR32Match(16, groupResults.D.runner, groupResults.G.runner),
+  ];
 
   state.knockout = {
     r32: nextR32,
@@ -445,39 +450,86 @@ function initializeKnockout() {
   };
 }
 
-function buildQualifiers() {
-  const winners = GROUP_ORDER.map((groupKey) => state.groups[groupKey][0]);
-  const runners = GROUP_ORDER.map((groupKey) => state.groups[groupKey][1]);
-  const thirds = [...state.thirdPlaceSelected];
+function createR32Match(index, home, away) {
+  return {
+    id: `R32-${index}`,
+    home: home || null,
+    away: away || null,
+    winner: null,
+  };
+}
 
-  const seed24 = [
-    winners[0],
-    runners[1],
-    winners[2],
-    runners[3],
-    winners[4],
-    runners[5],
-    winners[6],
-    runners[7],
-    winners[8],
-    runners[9],
-    winners[10],
-    runners[11],
-    winners[1],
-    runners[0],
-    winners[3],
-    runners[2],
-    winners[5],
-    runners[4],
-    winners[7],
-    runners[6],
-    winners[9],
-    runners[8],
-    winners[11],
-    runners[10],
-  ];
+function getGroupResults() {
+  const results = {};
+  for (const groupKey of GROUP_ORDER) {
+    results[groupKey] = {
+      winner: state.groups[groupKey][0],
+      runner: state.groups[groupKey][1],
+      third: state.groups[groupKey][2],
+    };
+  }
+  return results;
+}
 
-  return [...seed24, ...thirds];
+function getSelectedThirdPlaceEntries() {
+  const entries = [];
+  for (const groupKey of GROUP_ORDER) {
+    const team = state.groups[groupKey][2];
+    if (state.thirdPlaceSelected.includes(team)) {
+      entries.push({ group: groupKey, team });
+    }
+  }
+  return entries;
+}
+
+function assignThirdPlaceSlots(thirdEntries) {
+  const slots = Object.entries(THIRD_PLACE_SLOT_RULES).map(([slot, allowedGroups]) => {
+    return { slot, allowedGroups };
+  });
+
+  const byGroup = new Map(thirdEntries.map((entry) => [entry.group, entry.team]));
+  const assigned = backtrackThirdPlaceAssignment(slots, byGroup, new Map());
+
+  if (!assigned) {
+    throw new Error("Kolmossijojen kohdistus epaonnistui.");
+  }
+
+  const result = {};
+  for (const [slot, group] of assigned.entries()) {
+    result[slot] = byGroup.get(group);
+  }
+  return result;
+}
+
+function backtrackThirdPlaceAssignment(slots, byGroup, currentAssignment) {
+  if (currentAssignment.size === slots.length) {
+    return currentAssignment;
+  }
+
+  const usedGroups = new Set(currentAssignment.values());
+  const unassignedSlots = slots.filter((slot) => !currentAssignment.has(slot.slot));
+
+  unassignedSlots.sort((a, b) => {
+    const aCount = a.allowedGroups.filter((group) => byGroup.has(group) && !usedGroups.has(group)).length;
+    const bCount = b.allowedGroups.filter((group) => byGroup.has(group) && !usedGroups.has(group)).length;
+    return aCount - bCount;
+  });
+
+  const slot = unassignedSlots[0];
+  const candidates = slot.allowedGroups
+    .filter((group) => byGroup.has(group) && !usedGroups.has(group))
+    .sort();
+
+  for (const group of candidates) {
+    currentAssignment.set(slot.slot, group);
+    const solved = backtrackThirdPlaceAssignment(slots, byGroup, currentAssignment);
+    if (solved) {
+      return solved;
+    }
+    currentAssignment.delete(slot.slot);
+  }
+
+  return null;
 }
 
 function buildEmptyRound(prefix, count) {
